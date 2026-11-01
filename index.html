@@ -77,6 +77,11 @@ textarea{min-height:70px;resize:vertical}
 .hidden{display:none!important}
 .small{font-size:13px;color:var(--mute)}
 a{color:var(--link)}
+.lnk{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--card2);border:1px solid var(--line);color:var(--text);text-decoration:none;margin-bottom:8px}
+.lnk:active{border-color:var(--acc)}
+.lnk img,.lnk-ph{width:56px;height:56px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:var(--card)}
+.lnk-t{flex:1;min-width:0}.lnk-n{font-weight:800;font-size:17px}
+.lnk-go{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:700;color:var(--mute)}
 .badge .n,.badge .l{font-family:Anton,Impact,sans-serif;font-weight:400;letter-spacing:.03em}
 details summary{cursor:pointer;color:var(--mute);font-size:14px}
 table.scale{width:100%;border-collapse:collapse;font-size:13px}
@@ -130,6 +135,7 @@ sp.addEventListener("click",hide);sp.addEventListener("keydown",e=>{if(e.key==="
   <nav>
     <button data-tab="grade" class="on">Grade</button>
     <button data-tab="collection">Collection</button>
+    <button data-tab="links">Links</button>
     <button data-tab="settings">Settings</button>
   </nav>
 </div></header>
@@ -213,6 +219,11 @@ sp.addEventListener("click",hide);sp.addEventListener("keydown",e=>{if(e.key==="
       <label class="btn sm">Import backup<input type="file" id="import" accept="application/json,.json" class="hidden"></label>
     </div>
   </div>
+</section>
+
+<!-- ============ LINKS ============ -->
+<section id="tab-links" class="hidden">
+  <div id="linksList"></div>
 </section>
 
 <!-- ============ SETTINGS ============ -->
@@ -391,7 +402,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 /* ---------------- Tabs ---------------- */
 function showTab(t){
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
-  ["grade","collection","settings"].forEach(x=>$("#tab-"+x).classList.toggle("hidden", x!==t));
+  ["grade","collection","links","settings"].forEach(x=>$("#tab-"+x).classList.toggle("hidden", x!==t));
   if (t==="collection") renderList();
   window.scrollTo(0,0);
 }
@@ -709,8 +720,27 @@ $("#model").onchange = ()=>{ settings.model = $("#model").value; $("#modelCustom
 $("#modelCustom").oninput = ()=>{ settings.custom = $("#modelCustom").value; saveSettings(); };
 $("#scaleTable").innerHTML = SCALE.map((g,i)=>`<tr><td><b>${fmt(g)}</b></td><td>${ABBR[i]}</td><td>${NAME[i]}</td></tr>`).join("");
 
+/* ---------------- Links ---------------- */
+const LINKS = [
+  {group:"My channel", items:[
+    {name:"BatDan", handle:"@Bat_Dan", desc:"Comics, graphic novels, comic art & toys", url:"https://www.youtube.com/@Bat_Dan", own:true}
+  ]}
+  // Friends' channels go here, e.g.
+  // ,{group:"Friends' channels", items:[{name:"…", handle:"@…", desc:"…", url:"https://www.youtube.com/@…"}]}
+];
+const YT_SVG='<svg viewBox="0 0 28 20" width="26" height="19" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
+function renderLinks(){
+  const logo = document.querySelector(".logo img")?.src || "";
+  $("#linksList").innerHTML = LINKS.map(g=>`<div class="card"><h2>${esc(g.group)}</h2>${g.items.map(l=>`
+    <a class="lnk" href="${esc(l.url)}" target="_blank" rel="noopener">
+      ${l.own && logo ? `<img src="${logo}" alt="">` : `<div class="lnk-ph">${YT_SVG}</div>`}
+      <div class="lnk-t"><div class="lnk-n">${esc(l.name)}</div><div class="small">${esc(l.handle)}</div><div class="small">${esc(l.desc)}</div></div>
+      <div class="lnk-go">${YT_SVG}<span>Watch</span></div>
+    </a>`).join("")}</div>`).join("");
+}
+
 /* ---------------- Init ---------------- */
-renderPhotos(); renderHand(); loadSettings();
+renderPhotos(); renderHand(); renderLinks(); loadSettings();
 window.__test = {computeGrade, TYPES};
 </script>
 </body>
