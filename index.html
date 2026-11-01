@@ -40,13 +40,13 @@ textarea{min-height:70px;resize:vertical}
 .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .slot{position:relative;aspect-ratio:3/4;border:1.5px dashed var(--line);border-radius:12px;background:var(--card2);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--mute);overflow:hidden}
 .slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.slot .lbl{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);color:#fff;padding:3px;font-size:11px;font-weight:600}
-.slot .req{font-size:11px;margin-bottom:7px}
-.slot .pick{display:flex;flex-direction:column;gap:6px;width:86%;margin-bottom:20px}
+.slot .lbl{position:absolute;left:0;right:0;top:0;z-index:1;background:rgba(0,0,0,.65);color:#fff;padding:3px;font-size:11px;font-weight:600}
+.slot .req{font-size:11px;margin:16px 0 7px}
+.slot .pick{display:flex;flex-direction:column;gap:6px;width:86%}
 .slot .pk{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;white-space:nowrap;background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:7px 2px;font:inherit;font-size:11px;font-weight:600;cursor:pointer}
 .slot .pk svg{color:var(--link);flex:none}
 .slot .pk:active{background:var(--accd)}
-.slot .x{position:absolute;top:4px;right:4px;z-index:2;background:rgba(0,0,0,.7);color:#fff;border:0;border-radius:50%;width:24px;height:24px;font-size:14px}
+.slot .x{position:absolute;bottom:5px;right:5px;z-index:2;background:rgba(0,0,0,.7);color:#fff;border:0;border-radius:50%;width:24px;height:24px;font-size:14px}
 .slot input{display:none}
 .hint{font-size:13px;color:var(--mute);margin:6px 0 0}
 .result{display:flex;align-items:center;gap:16px}
@@ -376,7 +376,7 @@ let collection = store.get(K_COL, []);
 /* ---------------- State ---------------- */
 const SLOTS = [
   {id:"front", label:"Front cover", req:true},
-  {id:"back", label:"Back cover"},
+  {id:"back", label:"Back cover", req:true},
   {id:"spine", label:"Spine"},
   {id:"c1", label:"Close-up"},
   {id:"c2", label:"Close-up"},
@@ -521,7 +521,8 @@ async function callModel(model, parts){
 
 async function analyse(){
   if (!settings.key){ showTab("settings"); return; }
-  if (!photos.front){ status("Add at least a front cover photo first.", "warn"); return; }
+  const missing = SLOTS.filter(s=>s.req && !photos[s.id]).map(s=>s.label.toLowerCase());
+  if (missing.length){ status(`Add a ${missing.join(" and a ")} photo first.`, "warn"); return; }
   const btn = $("#analyse"); btn.disabled = true; $("#analyseTxt").innerHTML = `<span class="spin"></span>&nbsp;Analysing…`; status("");
   try{
     const parts = [{text: buildPrompt()}];
