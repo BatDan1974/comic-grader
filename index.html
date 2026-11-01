@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raw Comic Grader</title>
+<meta name="theme-color" content="#121419">
+<style>
+:root{--bg:#121419;--card:#1b1e26;--card2:#232733;--line:#2e3341;--text:#eceef3;--mute:#9aa1b2;--acc:#ffcc33;--acc2:#e8452c;--good:#3ecf8e;--warn:#ffb020;--bad:#ff5c5c;--r:14px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:rgba(18,20,25,.95);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.bar{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px}
+.logo{font-weight:900;letter-spacing:.5px;font-size:19px}
+.logo b{color:var(--acc)}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button{background:none;border:0;color:var(--mute);padding:8px 10px;border-radius:10px;font:inherit;font-size:14px;font-weight:600}
+nav button.on{background:var(--card2);color:var(--text)}
+main{max-width:760px;margin:0 auto;padding:14px 14px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 10px}
+h3{font-size:15px;margin:14px 0 8px;color:var(--mute);font-weight:600}
+label.f{display:block;font-size:13px;color:var(--mute);margin:0 0 4px}
+input[type=text],input[type=password],select,textarea{width:100%;background:var(--card2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:15px}
+textarea{min-height:70px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2>div,.row{margin-bottom:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--card2);color:var(--text)}
+.btn.pri{background:var(--acc);color:#1a1300}
+.btn.red{background:transparent;color:var(--bad);border:1px solid var(--line)}
+.btn.sm{padding:7px 11px;font-size:14px;border-radius:10px}
+.btn:disabled{opacity:.45}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.wide{width:100%}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{position:relative;aspect-ratio:3/4;border:1.5px dashed var(--line);border-radius:12px;background:var(--card2);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--mute);overflow:hidden;cursor:pointer}
+.slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.slot .lbl{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);color:#fff;padding:3px;font-size:11px;font-weight:600}
+.slot .plus{font-size:26px;line-height:1;color:var(--acc)}
+.slot .x{position:absolute;top:4px;right:4px;z-index:2;background:rgba(0,0,0,.7);color:#fff;border:0;border-radius:50%;width:24px;height:24px;font-size:14px}
+.slot input{display:none}
+.hint{font-size:13px;color:var(--mute);margin:6px 0 0}
+.result{display:flex;align-items:center;gap:16px}
+.badge{flex:none;width:104px;height:104px;border-radius:18px;background:linear-gradient(160deg,var(--acc),#f08a1c);color:#1a1300;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(255,190,40,.18)}
+.badge .n{font-size:38px;font-weight:900;line-height:1}
+.badge .l{font-size:14px;font-weight:800;margin-top:4px}
+.meta{font-size:14px;color:var(--mute)}
+.meta strong{color:var(--text)}
+.def{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px}
+.def .top{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}
+.def .lvl{margin-top:6px}
+.def select,.def input{padding:8px;font-size:14px}
+.def .loc{margin-top:6px}
+.def .sub{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-top:6px;gap:8px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:#2b3245;color:#b9c6ff}
+.tag.cap{background:#3a2420;color:#ffb3a4}
+.warnbox{border-left:3px solid var(--warn);background:#2a2416;padding:10px 12px;border-radius:8px;font-size:14px;margin:10px 0}
+.errbox{border-left:3px solid var(--bad);background:#2c1a1c;padding:10px 12px;border-radius:8px;font-size:14px;margin:10px 0}
+.okbox{border-left:3px solid var(--good);background:#16271f;padding:10px 12px;border-radius:8px;font-size:14px;margin:10px 0}
+.list .item{display:flex;gap:12px;align-items:center;padding:10px;border-radius:12px;background:var(--card2);margin-bottom:8px;cursor:pointer;border:1px solid var(--line)}
+.list .item img,.list .item .ph{width:52px;height:70px;object-fit:cover;border-radius:6px;background:#333;flex:none}
+.list .item .g{margin-left:auto;text-align:right;font-weight:900;font-size:20px;color:var(--acc)}
+.list .item .g small{display:block;font-size:12px;color:var(--mute);font-weight:700}
+.list .t{font-weight:700}
+.list .s{font-size:13px;color:var(--mute)}
+.spin{width:18px;height:18px;border:3px solid rgba(0,0,0,.25);border-top-color:#1a1300;border-radius:50%;animation:s 0.8s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+.hidden{display:none!important}
+.small{font-size:13px;color:var(--mute)}
+a{color:var(--acc)}
+details summary{cursor:pointer;color:var(--mute);font-size:14px}
+table.scale{width:100%;border-collapse:collapse;font-size:13px}
+table.scale td{padding:4px 6px;border-bottom:1px solid var(--line)}
+@media (max-width:420px){.logo{font-size:16px}nav button{padding:7px 7px;font-size:13px}.badge{width:88px;height:88px}.badge .n{font-size:32px}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="logo">RAW<b>GRADER</b></div>
+  <nav>
+    <button data-tab="grade" class="on">Grade</button>
+    <button data-tab="collection">Collection</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+</div></header>
+
+<main>
+<!-- ============ GRADE ============ -->
+<section id="tab-grade">
+  <div id="nokey" class="warnbox hidden">Add your free Gemini API key in <a href="#" data-goto="settings">Settings</a> to use AI photo grading. You can still grade manually without one.</div>
+
+  <div class="card">
+    <h2>Comic details</h2>
+    <div class="grid2">
+      <div><label class="f">Title</label><input type="text" id="title" placeholder="e.g. Amazing Spider-Man"></div>
+      <div><label class="f">Issue #</label><input type="text" id="issue" placeholder="e.g. 300"></div>
+      <div><label class="f">Publisher</label><input type="text" id="publisher" placeholder="e.g. Marvel"></div>
+      <div><label class="f">Year</label><input type="text" id="year" placeholder="e.g. 1988" inputmode="numeric"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Check by hand</h2>
+    <p class="small" style="margin-top:0">Photos can't show these, so open the book and pick what you see. Leave as "Not checked" to skip.</p>
+    <div class="grid2" id="hand"></div>
+  </div>
+
+  <div class="card">
+    <h2>Photos</h2>
+    <div class="photos" id="photos"></div>
+    <p class="hint">Shoot in good, even daylight with no glare, the book flat and filling the frame. Angle the light across the cover to reveal creases and dents.</p>
+  </div>
+
+  <div class="btns" style="margin-bottom:14px">
+    <button class="btn pri" id="analyse" style="flex:1"><span id="analyseTxt">Analyse with AI</span></button>
+    <button class="btn" id="manual">Grade manually</button>
+  </div>
+  <div id="status"></div>
+
+  <!-- Result -->
+  <div id="resultCard" class="card hidden">
+    <div class="result">
+      <div class="badge"><div class="n" id="gNum">–</div><div class="l" id="gLbl"></div></div>
+      <div>
+        <div style="font-weight:800;font-size:17px" id="gName"></div>
+        <div class="meta" id="gWhy"></div>
+        <div class="meta" id="gAi"></div>
+        <div class="meta" id="gBlock"></div>
+      </div>
+    </div>
+    <div id="aiSummary"></div>
+
+    <h3>Defects <span class="small">(edit anything the AI got wrong; the grade updates live)</span></h3>
+    <div id="defects"></div>
+    <button class="btn sm" id="addDef">+ Add defect</button>
+
+    <h3>Notes</h3>
+    <textarea id="notes" placeholder="Anything else worth recording"></textarea>
+
+    <div class="btns" style="margin-top:12px">
+      <button class="btn pri" id="save" style="flex:1">Save to collection</button>
+      <button class="btn" id="newBook">New book</button>
+    </div>
+    <p class="small" style="margin-top:10px">This is an estimate from photos, not a professional grade. Interior pages, very light creases and structural issues are hard to judge from images.</p>
+  </div>
+</section>
+
+<!-- ============ COLLECTION ============ -->
+<section id="tab-collection" class="hidden">
+  <div class="card">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <h2 style="margin:0">My collection</h2>
+      <span class="small" id="count"></span>
+    </div>
+    <input type="text" id="search" placeholder="Search title, publisher…" style="margin-bottom:10px">
+    <div class="list" id="list"></div>
+  </div>
+  <div class="card">
+    <h2>Backup</h2>
+    <p class="small" style="margin-top:0">Your collection lives in this browser only. Export it now and then so you don't lose it, or to move it to another device.</p>
+    <div class="btns">
+      <button class="btn sm" id="export">Export backup</button>
+      <label class="btn sm">Import backup<input type="file" id="import" accept="application/json,.json" class="hidden"></label>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="tab-settings" class="hidden">
+  <div class="card">
+    <h2>Gemini API key</h2>
+    <p class="small" style="margin-top:0">Each person uses their own free key, so everyone gets their own daily allowance. Your key is stored only in this browser on this device and is sent only to Google.</p>
+    <div class="row"><input type="password" id="key" placeholder="Paste your key (starts with AIza…)" autocomplete="off"></div>
+    <div class="btns">
+      <button class="btn pri sm" id="saveKey">Save key</button>
+      <button class="btn sm" id="testKey">Test key</button>
+      <button class="btn red sm" id="clearKey">Remove</button>
+    </div>
+    <div id="keyStatus"></div>
+    <details style="margin-top:12px"><summary>How to get a free key (2 minutes)</summary>
+      <ol class="small">
+        <li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with a Google account.</li>
+        <li>Tap <b>Create API key</b> and copy it.</li>
+        <li>Paste it above and tap Save. Don't add billing, so it can never charge you.</li>
+      </ol>
+    </details>
+  </div>
+  <div class="card">
+    <h2>AI model</h2>
+    <select id="model">
+      <option value="gemini-2.5-flash">Gemini 2.5 Flash (best accuracy)</option>
+      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (more free scans/day)</option>
+      <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+      <option value="custom">Other…</option>
+    </select>
+    <input type="text" id="modelCustom" class="hidden" placeholder="Model name, e.g. gemini-2.5-pro" style="margin-top:8px">
+    <p class="small">Free daily limits differ by model and Google changes them. If you hit the limit, switch model or come back tomorrow (it resets at midnight Pacific time, around 8am UK).</p>
+  </div>
+  <div class="card">
+    <details><summary>How grades are worked out</summary>
+      <p class="small">The AI only <i>finds</i> defects. The app then grades them with fixed rules based on the standard grading tables: each defect type and level has a highest grade it allows, and the book gets the highest grade that every defect allows. As in the tables, one defect at its limit is fine "if others are absent"; several other defects at the same level cost up to two extra steps. Bindery flaws and dates/stamps stop counting below 4.5. Photos can't confirm 9.9 or 10.0, so 9.8 is the top. The rules were checked against 54 annotated examples from the grading guide: 49 match exactly and the other 5 are within one step.</p>
+      <table class="scale" id="scaleTable"></table>
+    </details>
+  </div>
+  <p class="small" style="text-align:center">Not affiliated with Overstreet, CGC or CBCS. Estimates only.</p>
+</section>
+</main>
+
+<script>
+"use strict";
+// ENGINE-START
+/* Grading engine — criteria paraphrased from the 10-point grading tables.
+   Each defect type has levels; each level carries the highest grade it allows (its "ceiling"). */
+const SCALE = [10.0,9.9,9.8,9.6,9.4,9.2,9.0,8.5,8.0,7.5,7.0,6.5,6.0,5.5,5.0,4.5,4.0,3.5,3.0,2.5,2.0,1.8,1.5,1.0,0.5];
+const ABBR  = ["GM","MT","NM/M","NM+","NM","NM-","VF/NM","VF+","VF","VF-","FN/VF","FN+","FN","FN-","VG/FN","VG+","VG","VG-","GD/VG","GD+","GD","GD-","FR/GD","FR","PR"];
+const NAME  = ["Gem Mint","Mint","Near Mint/Mint","Near Mint+","Near Mint","Near Mint-","Very Fine/Near Mint","Very Fine+","Very Fine","Very Fine-","Fine/Very Fine","Fine+","Fine","Fine-","Very Good/Fine","Very Good+","Very Good","Very Good-","Good/Very Good","Good+","Good","Good-","Fair/Good","Fair","Poor"];
+const PHOTO_CAP = 9.8; // photos can't confirm 9.9 / 10.0
+const idxOf = g => { for (let i = 0; i < SCALE.length; i++) if (SCALE[i] <= g + 1e-9) return i; return SCALE.length - 1; };
+
+const TYPES = [
+ {id:"spine_stress", n:"Spine stress lines", h:"Small bends along the spine that do NOT break the ink", L:[
+   ["Barely visible, one or two",9.8],["A few light lines",9.4],["Small accumulation of light lines",9.0],["Several minor lines",8.0],["Accumulation of minor lines",6.0],["Many moderate lines",4.0],["Numerous heavy lines",2.0]]},
+ {id:"spine_tick", n:"Colour-breaking spine ticks", h:"Spine bends that break the ink and show white paper", L:[
+   ["One tiny tick, barely breaks colour",9.8],["Several tiny ticks (under 1/16\")",9.4],["Very minor colour break",8.5],["Minor colour break",8.0],["Moderate colour break",7.0],["Severe colour break",6.5],["Accumulation of severe breaks",2.5]]},
+ {id:"spine_crease", n:"Spine / reading creases", h:"Creases running in from the spine, usually from the book being read", L:[
+   ["One or two small",7.0],["Several",5.5],["Numerous",3.5],["Heavily worn and wrinkled spine",2.0]]},
+ {id:"spine_roll", n:"Spine roll", h:"The spine has shifted round onto the front or back cover", L:[
+   ["Slightest",7.0],["Slight",6.5],["Minor",6.0],["Moderate",4.0],["Heavy",2.0],["Extreme",0.5]]},
+ {id:"spine_split", n:"Spine split", h:"A split along the spine fold, measured end to end", L:[
+   ["Up to 1/8\"",6.5],["Up to 1/4\"",6.0],["1/4\" to 1/2\"",5.0],["1/2\" to 1\"",4.5],["1\" to 1-1/2\"",3.0],["1-1/2\" to 2\"",2.0],["2\" up to 2/3 of the spine",1.5],["Over 2/3, or fully split",0.5]]},
+ {id:"bend", n:"Bend, dent or impression", h:"A bend, dent or indentation that does NOT break the ink", L:[
+   ["Almost imperceptible",9.8],["Under 1/16\"",9.4],["1/16\" to 1/8\"",9.0],["1/8\" to 1/4\"",8.5],["1/4\" to 1/2\"",8.0],["Large dimple",4.5]]},
+ {id:"crease", n:"Cover crease", h:"A crease that breaks the ink or leaves a clear line (not at a corner or spine)", L:[
+   ["Small light crease (under 1/4\")",8.0],["Light crease 1/4\" to 1/2\", no colour break",8.0],["Minor crease",7.5],["Several minor creases",7.0],["Moderate crease",6.0],["Creases with dimpling",5.0],["Accumulation of creases",4.0],["Book-length crease",3.0],["Heavy creasing and crumpling",1.0]]},
+ {id:"corner_wear", n:"Corner wear", h:"Blunted, abraded or rounded corners", L:[
+   ["Barely visible",9.8],["One almost-imperceptibly blunted corner",9.6],["Ever-so-slight blunting",9.4],["Slight blunting on several corners",9.2],["Minute wear / minor abrasion",8.0],["Blunted or abraded",7.0],["Rounded corner",6.0],["Heavily rounded or missing corners",1.0]]},
+ {id:"corner_crease", n:"Corner crease or bend", h:"A folded, bent or creased corner", L:[
+   ["Slight bend, no colour break",9.2],["About 1/8\" bend",9.0],["Small crease that breaks colour",8.0],["Moderate corner creases",6.0],["Heavy corner creases",3.0]]},
+ {id:"edge_wear", n:"Edge wear", h:"Blunting, fraying or roughness along the cover edges", L:[
+   ["Barely visible",9.8],["Slight blunting",9.2],["Minor wear",8.5],["Chipped or frayed in places",7.0],["Frayed along an edge",4.0],["Ragged edges",2.0],["Extremely ragged",0.5]]},
+ {id:"chip", n:"Small chips", h:"Tiny pieces out of an edge or corner (under about 1/16\")", L:[
+   ["One tiny chip",9.0],["A few small chips",8.5],["Several chips",6.5],["Numerous chips",4.5]]},
+ {id:"missing", n:"Missing piece", h:"A larger piece of the cover or a page is gone", L:[
+   ["Up to 1/8\" triangle (1/16\" square)",4.5],["Up to 1/4\" triangle (1/8\" square)",4.0],["1/4\" to 1/2\" triangle",3.0],["About 1/2\" triangle (1/4\" square)",2.0],["Up to 1\" or 1/10 of back cover",1.5],["Up to 1/4 of front cover or whole back cover",1.0],["Large chunks of covers or pages",0.5]]},
+ {id:"tear", n:"Tear", h:"A tear into the cover or pages, away from the staples", L:[
+   ["Tiny (under 1/8\")",8.5],["Small (up to 1/2\")",7.0],["1/2\" to 1\"",5.0],["1\" to 2\"",3.0],["About 2\" or more / numerous tears",1.5]]},
+ {id:"staple_tear", n:"Staple tear", h:"A tear starting at a staple", L:[
+   ["Slightest",9.0],["Slight",8.0],["Several slight",7.5],["Minor",6.0],["Several minor",5.0],["Moderate",3.0],["Extensive",0.5]]},
+ {id:"staple_rust", n:"Staple discolouration / rust", h:"Discoloured or rusty staples, rust spreading onto the paper", L:[
+   ["Slightest discolouration",9.6],["Some discolouration",9.0],["Slight rust migration",7.5],["Minor rust migration",6.0],["Some rust migration",4.0],["Rusted or replaced staples",3.0],["Extreme rust",0.5]]},
+ {id:"bindery", n:"Bindery / printing defect", h:"Factory flaws: miswrapped or off-centre cover, off-centre staple, poor trimming", L:[
+   ["Subtle",9.6],["Minor (e.g. slight miswrap)",9.2],["Noticeable",8.0],["Obvious (e.g. cover wrapped 1/4\" onto back)",6.0]]},
+ {id:"flecks", n:"Colour flecks", h:"Tiny specks where ink has flaked off", L:[
+   ["A few tiny flecks",9.8],["Several flecks",9.0],["Numerous flecks",7.0]]},
+ {id:"rub", n:"Rubbing / colour loss", h:"Scuffs or scrapes that remove ink from the surface", L:[
+   ["Light rubbing",9.2],["Colour rub or scrape",7.0],["Colour missing from abrasion",4.0],["Heavy surface wear",1.5]]},
+ {id:"gloss", n:"Loss of gloss / fading", h:"Dull or faded cover inks", L:[
+   ["Minimal fading",9.8],["Slightly diminished gloss",9.0],["Moderate reduction",7.0],["Major reduction",6.0],["Very low gloss",3.0],["No gloss / extreme fading",1.0]]},
+ {id:"soiling", n:"Soiling / staining / foxing", h:"Dirt, fingerprints, stains, foxing spots or browning", L:[
+   ["Slight foxing or barely noticeable stain",9.4],["Very minor foxing or a tiny stain",9.0],["Minor foxing or fingerprints",8.0],["Light soiling",7.0],["Minor staining",6.0],["Moderate soiling or staining",5.0],["Mould spots",4.0],["Heavy soiling",3.0],["Extreme soiling or mould",0.5]]},
+ {id:"water", n:"Water damage", h:"Water marks, tide lines, warping", L:[
+   ["Slight water mark",6.0],["Water damage with warping",3.0],["Extensive water damage",0.5]]},
+ {id:"writing", n:"Writing / stamps", h:"Dates, initials, stamps, names, signatures", L:[
+   ["Small inconspicuous date or initials",9.6],["Several dates or stamps",9.0],["Store stamp, or name inside",8.0],["Pencil marks on cover",6.5],["Pen writing or unverified signature on cover",6.0],["Heavy writing or defacement",3.0]]},
+ {id:"tape", n:"Tape / amateur repair", h:"Any tape, tape residue or home repair", L:[
+   ["Tiny unobtrusive repair",4.5],["Tape residue",3.0],["Tape on cover",2.0],["Extensive tape or repairs",1.0]]},
+ {id:"cover_loose", n:"Loose / detached cover", h:"Cover coming away from the staples", L:[
+   ["Loose",4.5],["Detached at one staple",3.0],["Fully detached",2.0],["Detached with chunks missing",0.5]]},
+ {id:"cut", n:"Cut-out / coupon cut", h:"Something cut out of the cover or pages", L:[
+   ["Small piece cut from cover",1.5],["Coupon cut out",1.0]]},
+ {id:"insect", n:"Insect / animal damage", h:"Chew marks or holes", L:[
+   ["Small chews",6.5],["Insect holes",3.0],["Extensive",1.0]]},
+ {id:"other", n:"Other", h:"Anything not covered above", L:[
+   ["Minor",8.0],["Moderate",6.0],["Major",4.0],["Severe",2.0]]}
+];
+const TYPE = Object.fromEntries(TYPES.map(t => [t.id, t]));
+
+/* Things that must be checked by hand (not visible in cover photos). [label, ceiling] */
+const HAND = {
+ pages: {n:"Page colour", L:[["Not checked",null],["White",10],["Off-white to white",9.8],["Off-white",9.6],["Cream to off-white",9.4],["Cream",8.5],["Tan to cream",8.0],["Light tan",7.5],["Brown to tan",6.0],["Brown",4.0],["Brittle at the edges",1.5],["Brittle throughout",0.5]]},
+ interior: {n:"Interior tears / pages", L:[["Not checked",null],["None",10],["Slightest tears",9.8],["Minor tears",9.0],["Minor tears in margins",8.0],["Moderate tears",3.0],["Loose interior pages",1.5],["Extensive tears or pages missing",0.5]]},
+ centrefold: {n:"Centrefold", L:[["Not checked",null],["Firmly secure",10],["Mostly secure",8.5],["Slightly loose",6.5],["Loose",6.0],["Detached at one staple",4.5],["Detached",2.5],["Missing",1.0]]},
+ odour: {n:"Acidic smell", L:[["Not checked",null],["None",10],["Faintest",5.0],["Very minor",4.5],["Minor",4.0],["Moderate",3.0],["Noticeable",1.5],["Strong",0.5]]}
+};
+
+function ceilingOf(d){ const t = TYPE[d.type] || TYPE.other; const l = t.L[Math.min(Math.max(+d.level||0,0), t.L.length-1)]; return l[1]; }
+function labelOf(d){ const t = TYPE[d.type] || TYPE.other; const l = t.L[Math.min(Math.max(+d.level||0,0), t.L.length-1)]; return `${t.n}: ${l[0].toLowerCase()}`; }
+
+/* defs: [{type, level}], hand: {pages, interior, centrefold, odour} (level indexes) */
+function computeGrade(defs, hand = {}){
+  const items = defs.map((d, i) => ({i, idx: idxOf(ceilingOf(d)), label: labelOf(d), cap: ceilingOf(d), src:"defect"}));
+  for (const [k, spec] of Object.entries(HAND)){
+    const lv = +(hand[k] || 0); const row = spec.L[lv];
+    if (row && row[1] != null && row[1] < 10) items.push({i:-1, idx: idxOf(row[1]), label: `${spec.n}: ${row[0].toLowerCase()}`, cap: row[1], src:"hand"});
+  }
+  let idx = idxOf(PHOTO_CAP), why = [], worst = null;
+  for (const it of items) if (!worst || it.idx > worst.idx) worst = it;
+  if (!worst || worst.idx <= idx) why.push("No defect limits it below 9.8 (photos can't confirm 9.9 or 10.0)");
+  if (worst && worst.idx > idx){ idx = worst.idx; why.push(`Limited by ${worst.label} (max ${SCALE[worst.idx].toFixed(1)})`); }
+  // Accumulation: the tables allow a defect at its limit "if others are absent".
+  // Other defects at (or 1 step above) the same limit add up; every 4 points costs one grade step (max 2).
+  let pts = 0;
+  if (worst) for (const it of items){ if (it === worst || it.idx <= idxOf(PHOTO_CAP)) continue; const d = worst.idx - it.idx; pts += d === 0 ? 1 : d === 1 ? 0.5 : 0; }
+  const steps = Math.min(2, Math.floor(pts / 4 + 1e-9));
+  if (steps){ idx = Math.min(idx + steps, SCALE.length - 1); why.push(`down ${steps} step${steps>1?"s":""} for several other defects at a similar level`); }
+  // the next grade up and what blocks it
+  return {grade: SCALE[idx], abbr: ABBR[idx], name: NAME[idx], idx, why, worstIndex: worst && worst.src === "defect" ? worst.i : -1,
+          blocked: worst && idx > idxOf(PHOTO_CAP) ? `Not ${SCALE[idx-1].toFixed(1)} because of: ${worst.label}${steps?" plus accumulated wear":""}` : ""};
+}
+if (typeof module !== "undefined") module.exports = {SCALE, ABBR, NAME, TYPES, TYPE, HAND, computeGrade, idxOf, ceilingOf, PHOTO_CAP};
+
+// ENGINE-END
+const fmt = g => g.toFixed(1);
+
+/* ---------------- Storage helpers ---------------- */
+const store = {
+  get(k, def){ try{ const v = localStorage.getItem(k); return v==null?def:JSON.parse(v); }catch(e){ return def; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+};
+const K_SET="rcg.settings", K_COL="rcg.collection";
+let settings = store.get(K_SET, {key:"", model:"gemini-2.5-flash", custom:""});
+let collection = store.get(K_COL, []);
+
+/* ---------------- State ---------------- */
+const SLOTS = [
+  {id:"front", label:"Front cover", req:true},
+  {id:"back", label:"Back cover"},
+  {id:"spine", label:"Spine"},
+  {id:"c1", label:"Close-up"},
+  {id:"c2", label:"Close-up"},
+  {id:"c3", label:"Close-up"}
+];
+let photos = {};          // slotId -> dataURL (resized jpeg)
+let current = null;       // {id?, defects:[], ai:{...}}
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------------- Tabs ---------------- */
+function showTab(t){
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
+  ["grade","collection","settings"].forEach(x=>$("#tab-"+x).classList.toggle("hidden", x!==t));
+  if (t==="collection") renderList();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+document.addEventListener("click", e=>{ const g=e.target.closest("[data-goto]"); if(g){ e.preventDefault(); showTab(g.dataset.goto); }});
+
+/* ---------------- Photos ---------------- */
+function renderPhotos(){
+  $("#photos").innerHTML = SLOTS.map(s=>`
+    <label class="slot" data-slot="${s.id}">
+      ${photos[s.id] ? `<img src="${photos[s.id]}" alt=""><button class="x" data-del="${s.id}" type="button">×</button>`
+                      : `<div class="plus">+</div><div>${s.req?"Required":"Optional"}</div>`}
+      <div class="lbl">${s.label}</div>
+      <input type="file" accept="image/*" data-in="${s.id}">
+    </label>`).join("");
+  document.querySelectorAll("[data-in]").forEach(inp=>inp.onchange=async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    try{ photos[inp.dataset.in] = await resizeImage(f, 1600, 0.85); }
+    catch(err){ status(`Couldn't read that image (${esc(err.message)}).`, "err"); }
+    renderPhotos();
+  });
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{ e.preventDefault(); e.stopPropagation(); delete photos[b.dataset.del]; renderPhotos(); });
+}
+function resizeImage(file, max, q){
+  return new Promise((res, rej)=>{
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = ()=>{
+      let {width:w, height:h} = img; const s = Math.min(1, max/Math.max(w,h));
+      w = Math.round(w*s); h = Math.round(h*s);
+      const c = document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", q));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error("unsupported format")); };
+    img.src = url;
+  });
+}
+function dataUrlToImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
+async function thumb(src){
+  const img = await dataUrlToImage(src); const s = 220/Math.max(img.width,img.height);
+  const c = document.createElement("canvas"); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height); return c.toDataURL("image/jpeg",0.7);
+}
+
+/* ---------------- Status ---------------- */
+function status(html, kind){ $("#status").innerHTML = html ? `<div class="${kind==="err"?"errbox":kind==="ok"?"okbox":"warnbox"}">${html}</div>` : ""; }
+
+/* ---------------- Gemini ---------------- */
+const SCHEMA = {
+  type:"OBJECT",
+  properties:{
+    identified_comic:{type:"STRING", description:"Title and issue if readable from the cover, else empty"},
+    defects:{type:"ARRAY", items:{type:"OBJECT", properties:{
+      type:{type:"STRING", enum:TYPES.map(t=>t.id)},
+      level:{type:"INTEGER", description:"Index of the matching level for that type, starting at 0"},
+      location:{type:"STRING", description:"Where on the book, e.g. 'front cover, top-right corner'"},
+      confidence:{type:"STRING", enum:["low","medium","high"]}
+    }, required:["type","level","location","confidence"]}},
+    ai_grade:{type:"NUMBER", description:"Your own overall estimate on the 0.5–10.0 scale"},
+    summary:{type:"STRING", description:"Two or three sentences on overall condition"},
+    could_not_assess:{type:"STRING", description:"What the photos don't let you judge, plus any photo problems (glare, blur, cropping). Empty if none."}
+  },
+  required:["defects","ai_grade","summary","could_not_assess"]
+};
+function buildPrompt(){
+  const lines = TYPES.map(t=>`${t.id} — ${t.n} (${t.h}). Levels: ${t.L.map((l,i)=>`${i}=${l[0]}`).join("; ")}`).join("\n");
+  const det = ["title","issue","publisher","year"].map(k=>$("#"+k).value.trim()).filter(Boolean).join(", ");
+  return `You are an experienced, careful grader of raw (unslabbed) comic books using the standard 10-point scale. Inspect every photo closely and record each physical defect you can actually see. Don't invent defects, but don't miss small ones either: tiny spine ticks, slight corner blunting, faint bends and small colour flecks all matter at the top grades.
+
+Book: ${det || "unknown"}.
+
+Record each defect as one of these types, choosing the level that best matches what you see. Levels run from least to most severe. Where a level gives a size, estimate it against the book (a standard comic is about 6.6" wide by 10.2" tall).
+${lines}
+
+Rules:
+- One entry per type, using the level that describes that type of damage across the whole book (e.g. three blunted corners = one corner_wear entry at the matching level). Use "location" to say where.
+- Spine stress that does not break the ink is spine_stress; if it breaks the ink it is spine_tick. A crease running in from the spine from reading is spine_crease.
+- Tiny chips under about 1/16" are chip; bigger pieces gone are missing.
+- A bend or dent where the ink is intact is bend; once the ink breaks it is crease (or corner_crease at a corner).
+- Glare, reflections, shadows, sleeves and the background are photo artefacts, not defects.
+- ai_grade is your own overall estimate. In could_not_assess, list what the photos don't show (interior pages, centrefold, back cover if missing) and any photo problems.`;
+}
+function modelName(){ return settings.model==="custom" ? (settings.custom||"").trim() : settings.model; }
+
+async function callGemini(parts){
+  const model = modelName();
+  if (!model) throw new Error("No model selected in Settings.");
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-goog-api-key":settings.key},
+    body: JSON.stringify({contents:[{role:"user", parts}], generationConfig:{responseMimeType:"application/json", responseSchema:SCHEMA, temperature:0.2}})
+  });
+  let data = null; try{ data = await r.json(); }catch(e){}
+  if (!r.ok){
+    const msg = data?.error?.message || r.statusText;
+    if (r.status===429) throw new Error(`You've used today's free scans for ${model}. Try another model in Settings, grade manually, or come back after the daily reset.`);
+    if (r.status===400 && /API key/i.test(msg)) throw new Error("Google rejected the API key. Check it in Settings.");
+    if (r.status===403) throw new Error("This key isn't allowed to use the Gemini API (403). Create a fresh key at aistudio.google.com/apikey.");
+    if (r.status===404) throw new Error(`Model "${model}" wasn't found. Pick another in Settings.`);
+    throw new Error(`Gemini error ${r.status}: ${msg}`);
+  }
+  const cand = data?.candidates?.[0];
+  const txt = (cand?.content?.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
+  if (!txt) throw new Error(cand?.finishReason ? `Gemini returned no result (${cand.finishReason}). Try again.` : "Gemini returned an empty result.");
+  return JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g,""));
+}
+
+async function analyse(){
+  if (!settings.key){ showTab("settings"); return; }
+  if (!photos.front){ status("Add at least a front cover photo first.", "warn"); return; }
+  const btn = $("#analyse"); btn.disabled = true; $("#analyseTxt").innerHTML = `<span class="spin"></span>&nbsp;Analysing…`; status("");
+  try{
+    const parts = [{text: buildPrompt()}];
+    for (const s of SLOTS) if (photos[s.id]){
+      parts.push({text:`Photo: ${s.label}`});
+      parts.push({inline_data:{mime_type:"image/jpeg", data: photos[s.id].split(",")[1]}});
+    }
+    const res = await callGemini(parts);
+    const defs = (res.defects||[]).filter(d=>d && d.type).map(d=>{
+      const t = TYPE[d.type] ? d.type : "other";
+      const lv = Math.min(Math.max(parseInt(d.level,10)||0,0), TYPE[t].L.length-1);
+      return {type:t, level:lv, location: d.location||"", confidence: d.confidence||"", ai:true};
+    });
+    current = {id: current?.id, defects: defs, ai:{grade: Number(res.ai_grade)||null, summary: res.summary||"", cna: res.could_not_assess||"", ident: res.identified_comic||"", model: modelName()}};
+    if (res.identified_comic && !$("#title").value.trim()) $("#title").value = res.identified_comic;
+    showResult();
+  }catch(e){
+    status(esc(e.message || String(e)), "err");
+  }finally{
+    btn.disabled = false; $("#analyseTxt").textContent = "Analyse with AI";
+  }
+}
+
+/* ---------------- Result / defects ---------------- */
+function showResult(){
+  $("#resultCard").classList.remove("hidden");
+  const ai = current.ai;
+  $("#aiSummary").innerHTML = ai ? `
+    ${ai.summary ? `<p style="margin:12px 0 0">${esc(ai.summary)}</p>` : ""}
+    ${ai.cna ? `<div class="warnbox"><b>Couldn't check:</b> ${esc(ai.cna)}</div>` : ""}` : "";
+  renderDefects();
+  $("#resultCard").scrollIntoView({behavior:"smooth", block:"start"});
+}
+function handVals(){ const h={}; for (const k of Object.keys(HAND)) h[k] = +$("#hand_"+k).value; return h; }
+function renderHand(vals={}){
+  $("#hand").innerHTML = Object.entries(HAND).map(([k,v])=>`<div><label class="f">${esc(v.n)}</label><select id="hand_${k}">${v.L.map((l,i)=>`<option value="${i}">${esc(l[0])}${l[1]!=null&&l[1]<10?` (max ${fmt(l[1])})`:""}</option>`).join("")}</select></div>`).join("");
+  for (const k of Object.keys(HAND)){ const el=$("#hand_"+k); el.value = vals[k]||0; el.onchange = ()=>{ if (current) updateGrade(); }; }
+}
+function updateGrade(){
+  const g = computeGrade(current.defects, handVals());
+  $("#gNum").textContent = fmt(g.grade); $("#gLbl").textContent = g.abbr; $("#gName").textContent = g.name;
+  $("#gWhy").textContent = g.why.join("; ");
+  $("#gBlock").textContent = g.blocked;
+  $("#gAi").innerHTML = current.ai?.grade ? `AI's own estimate: <strong>${fmt(SCALE[idxOf(current.ai.grade)])}</strong>` : "";
+  document.querySelectorAll(".def").forEach((el,i)=>el.querySelector(".captag")?.classList.toggle("hidden", i!==g.worstIndex));
+  return g;
+}
+function renderDefects(){
+  const typeOpts = TYPES.map(t=>`<option value="${t.id}">${esc(t.n)}</option>`).join("");
+  $("#defects").innerHTML = current.defects.length ? current.defects.map((d,i)=>{
+    const t = TYPE[d.type]||TYPE.other;
+    return `<div class="def" data-i="${i}">
+      <div class="top">
+        <select data-f="type">${typeOpts}</select>
+        <button class="btn red sm" data-rm="${i}" type="button">✕</button>
+      </div>
+      <select class="lvl" data-f="level">${t.L.map((l,j)=>`<option value="${j}">${esc(l[0])} (max ${fmt(l[1])})</option>`).join("")}</select>
+      <input type="text" class="loc" data-f="location" placeholder="Location (optional)" value="${esc(d.location)}">
+      <div class="sub"><span>${esc(t.h)}</span>
+        <span>${d.ai?`<span class="tag">AI${d.confidence?` · ${esc(d.confidence)}`:""}</span>`:""} <span class="tag cap captag hidden">sets grade</span></span></div>
+    </div>`}).join("") : `<p class="small">No defects listed. Add any you can see.</p>`;
+  document.querySelectorAll(".def").forEach(el=>{
+    const d = current.defects[+el.dataset.i];
+    el.querySelector('[data-f=type]').value = d.type;
+    el.querySelector('[data-f=level]').value = d.level;
+    el.querySelectorAll("[data-f]").forEach(inp=>{
+      const ev = inp.tagName==="SELECT" ? "change" : "input";
+      inp.addEventListener(ev, ()=>{
+        const f = inp.dataset.f;
+        if (f==="type"){ d.type = inp.value; d.level = 0; d.ai=false; renderDefects(); }
+        else if (f==="level"){ d.level = +inp.value; d.ai=false; updateGrade(); }
+        else d.location = inp.value;
+      });
+    });
+  });
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{ current.defects.splice(+b.dataset.rm,1); renderDefects(); });
+  updateGrade();
+}
+$("#addDef").onclick = ()=>{ current.defects.push({type:"corner_wear", level:0, location:""}); renderDefects(); };
+$("#analyse").onclick = analyse;
+$("#manual").onclick = ()=>{ if (!current) current = {defects:[], ai:null}; status(""); showResult(); };
+
+function resetForm(){
+  current = null; photos = {};
+  ["title","issue","publisher","year","notes"].forEach(k=>$("#"+k).value="");
+  renderHand(); $("#resultCard").classList.add("hidden"); status(""); renderPhotos();
+}
+$("#newBook").onclick = ()=>{ resetForm(); window.scrollTo(0,0); };
+
+$("#save").onclick = async ()=>{
+  const g = computeGrade(current.defects, handVals());
+  const rec = {
+    id: current.id || ("c"+Date.now()),
+    title: $("#title").value.trim() || "Untitled", issue: $("#issue").value.trim(),
+    publisher: $("#publisher").value.trim(), year: $("#year").value.trim(),
+    hand: handVals(), notes: $("#notes").value,
+    defects: current.defects, ai: current.ai, grade: g.grade, abbr: g.abbr,
+    thumb: current.thumb || (photos.front ? await thumb(photos.front) : ""),
+    date: new Date().toISOString()
+  };
+  const i = collection.findIndex(c=>c.id===rec.id);
+  if (i>=0) collection[i] = rec; else collection.unshift(rec);
+  if (!store.set(K_COL, collection)) { status("Couldn't save — browser storage is full or blocked. Export a backup and remove some books.", "err"); return; }
+  current.id = rec.id; current.thumb = rec.thumb;
+  status(`Saved <b>${esc(rec.title)}${rec.issue?" #"+esc(rec.issue):""}</b> at ${fmt(rec.grade)} ${rec.abbr}.`, "ok");
+  window.scrollTo({top:0, behavior:"smooth"});
+};
+
+/* ---------------- Collection ---------------- */
+function renderList(){
+  const q = $("#search").value.trim().toLowerCase();
+  const items = collection.filter(c=>!q || [c.title,c.publisher,c.issue,c.year].join(" ").toLowerCase().includes(q));
+  $("#count").textContent = `${collection.length} book${collection.length===1?"":"s"}`;
+  $("#list").innerHTML = items.length ? items.map(c=>`
+    <div class="item" data-id="${c.id}">
+      ${c.thumb?`<img src="${c.thumb}" alt="">`:`<div class="ph"></div>`}
+      <div><div class="t">${esc(c.title)}${c.issue?" #"+esc(c.issue):""}</div>
+      <div class="s">${esc([c.publisher,c.year].filter(Boolean).join(" · "))}</div>
+      <div class="s">${new Date(c.date).toLocaleDateString()}</div></div>
+      <div class="g">${fmt(c.grade)}<small>${esc(c.abbr)}</small></div>
+    </div>`).join("") : `<p class="small">${collection.length?"No matches.":"Nothing saved yet. Grade a book and tap Save."}</p>`;
+  document.querySelectorAll(".item").forEach(el=>el.onclick=()=>openItem(el.dataset.id));
+}
+$("#search").oninput = renderList;
+function openItem(id){
+  const c = collection.find(x=>x.id===id); if(!c) return;
+  resetForm();
+  ["title","issue","publisher","year","notes"].forEach(k=>$("#"+k).value = c[k]||"");
+  renderHand(c.hand||{});
+  current = {id:c.id, defects: JSON.parse(JSON.stringify(c.defects||[])).filter(d=>TYPE[d.type]&&d.level!=null), ai:c.ai, thumb:c.thumb};
+  showTab("grade"); showResult();
+  status(`Editing a saved book. <a href="#" id="delBook">Delete it</a>`, "warn");
+  $("#delBook").onclick = e=>{ e.preventDefault(); if (!confirmDel(c)) return; };
+}
+function confirmDel(c){
+  const box = $("#status");
+  box.innerHTML = `<div class="errbox">Delete <b>${esc(c.title)}</b>? <button class="btn red sm" id="yesDel">Delete</button> <button class="btn sm" id="noDel">Cancel</button></div>`;
+  $("#yesDel").onclick = ()=>{ collection = collection.filter(x=>x.id!==c.id); store.set(K_COL, collection); resetForm(); showTab("collection"); };
+  $("#noDel").onclick = ()=>status("");
+}
+$("#export").onclick = ()=>{
+  const blob = new Blob([JSON.stringify({app:"raw-comic-grader", v:1, collection}, null, 1)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `comic-collection-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+};
+$("#import").onchange = async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const data = JSON.parse(await f.text()); const inc = Array.isArray(data) ? data : data.collection;
+    if (!Array.isArray(inc)) throw new Error("not a backup file");
+    const ids = new Set(collection.map(c=>c.id)); let added = 0;
+    for (const c of inc) if (c && c.id && !ids.has(c.id)) { collection.push(c); added++; }
+    store.set(K_COL, collection); renderList();
+    alertBox(`Imported ${added} book${added===1?"":"s"}.`);
+  }catch(err){ alertBox("Couldn't import: " + err.message); }
+  e.target.value = "";
+};
+function alertBox(msg){ const l=$("#list"); l.insertAdjacentHTML("beforebegin", `<div class="okbox" id="imp">${esc(msg)}</div>`); setTimeout(()=>$("#imp")?.remove(), 4000); }
+
+/* ---------------- Settings ---------------- */
+function loadSettings(){
+  $("#key").value = settings.key || "";
+  $("#model").value = ["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-3-flash-preview","custom"].includes(settings.model) ? settings.model : "custom";
+  if ($("#model").value==="custom") $("#modelCustom").value = settings.custom || settings.model || "";
+  $("#modelCustom").classList.toggle("hidden", $("#model").value!=="custom");
+  $("#nokey").classList.toggle("hidden", !!settings.key);
+}
+function saveSettings(){ store.set(K_SET, settings); $("#nokey").classList.toggle("hidden", !!settings.key); }
+$("#saveKey").onclick = ()=>{ settings.key = $("#key").value.trim(); saveSettings(); $("#keyStatus").innerHTML = `<div class="okbox">${settings.key?"Key saved on this device.":"No key entered."}</div>`; };
+$("#clearKey").onclick = ()=>{ settings.key = ""; $("#key").value=""; saveSettings(); $("#keyStatus").innerHTML = `<div class="okbox">Key removed.</div>`; };
+$("#testKey").onclick = async ()=>{
+  settings.key = $("#key").value.trim(); saveSettings();
+  if (!settings.key){ $("#keyStatus").innerHTML = `<div class="warnbox">Paste a key first.</div>`; return; }
+  $("#keyStatus").innerHTML = `<div class="warnbox">Testing…</div>`;
+  try{
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName())}`, {headers:{"x-goog-api-key":settings.key}});
+    const d = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(d?.error?.message || r.statusText);
+    $("#keyStatus").innerHTML = `<div class="okbox">Key works with ${esc(d.displayName || modelName())}. (This test doesn't use a scan.)</div>`;
+  }catch(e){ $("#keyStatus").innerHTML = `<div class="errbox">${esc(e.message)}</div>`; }
+};
+$("#model").onchange = ()=>{ settings.model = $("#model").value; $("#modelCustom").classList.toggle("hidden", settings.model!=="custom"); saveSettings(); };
+$("#modelCustom").oninput = ()=>{ settings.custom = $("#modelCustom").value; saveSettings(); };
+$("#scaleTable").innerHTML = SCALE.map((g,i)=>`<tr><td><b>${fmt(g)}</b></td><td>${ABBR[i]}</td><td>${NAME[i]}</td></tr>`).join("");
+
+/* ---------------- Init ---------------- */
+renderPhotos(); renderHand(); loadSettings();
+window.__test = {computeGrade, TYPES};
+</script>
+</body>
+</html>
