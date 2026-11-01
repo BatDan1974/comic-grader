@@ -170,7 +170,7 @@ table.scale td{padding:4px 6px;border-bottom:1px solid var(--line)}
   <div class="card">
     <h2>Gemini API key</h2>
     <p class="small" style="margin-top:0">Each person uses their own free key, so everyone gets their own daily allowance. Your key is stored only in this browser on this device and is sent only to Google.</p>
-    <div class="row"><input type="password" id="key" placeholder="Paste your key (starts with AIza…)" autocomplete="off"></div>
+    <div class="row"><input type="password" id="key" placeholder="Paste your key (starts with AQ. or AIza)" autocomplete="off"></div>
     <div class="btns">
       <button class="btn pri sm" id="saveKey">Save key</button>
       <button class="btn sm" id="testKey">Test key</button>
@@ -188,12 +188,12 @@ table.scale td{padding:4px 6px;border-bottom:1px solid var(--line)}
   <div class="card">
     <h2>AI model</h2>
     <select id="model">
-      <option value="gemini-2.5-flash">Gemini 2.5 Flash (best accuracy)</option>
-      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (more free scans/day)</option>
-      <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+      <option value="gemini-3.8-flash">Gemini 3.8 Flash (best accuracy)</option>
+      <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+      <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (more free scans/day)</option>
       <option value="custom">Other…</option>
     </select>
-    <input type="text" id="modelCustom" class="hidden" placeholder="Model name, e.g. gemini-2.5-pro" style="margin-top:8px">
+    <input type="text" id="modelCustom" class="hidden" placeholder="Model name, e.g. gemini-3.8-flash" style="margin-top:8px">
     <p class="small">Free daily limits differ by model and Google changes them. If you hit the limit, switch model or come back tomorrow (it resets at midnight Pacific time, around 8am UK).</p>
   </div>
   <div class="card">
@@ -318,7 +318,9 @@ const store = {
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
 };
 const K_SET="rcg.settings", K_COL="rcg.collection";
-let settings = store.get(K_SET, {key:"", model:"gemini-2.5-flash", custom:""});
+let settings = store.get(K_SET, {key:"", model:"gemini-3.8-flash", custom:""});
+const MODELS = ["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite"];
+if (/^gemini-(2\.|3-flash-preview)/.test(settings.model||"")) settings.model = "gemini-3.8-flash"; // retired for new accounts
 let collection = store.get(K_COL, []);
 
 /* ---------------- State ---------------- */
@@ -425,7 +427,16 @@ Rules:
 function modelName(){ return settings.model==="custom" ? (settings.custom||"").trim() : settings.model; }
 
 async function callGemini(parts){
-  const model = modelName();
+  const first = modelName();
+  const tries = [first, ...MODELS.filter(m=>m!==first)];
+  for (let i=0;i<tries.length;i++){
+    try { const out = await callModel(tries[i], parts);
+      if (i>0 && settings.model!=="custom"){ settings.model = tries[i]; saveSettings(); loadSettings(); }
+      return out;
+    } catch(e){ if (!(e.notFound && i<tries.length-1)) throw e; }
+  }
+}
+async function callModel(model, parts){
   if (!model) throw new Error("No model selected in Settings.");
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method:"POST",
@@ -438,7 +449,7 @@ async function callGemini(parts){
     if (r.status===429) throw new Error(`You've used today's free scans for ${model}. Try another model in Settings, grade manually, or come back after the daily reset.`);
     if (r.status===400 && /API key/i.test(msg)) throw new Error("Google rejected the API key. Check it in Settings.");
     if (r.status===403) throw new Error("This key isn't allowed to use the Gemini API (403). Create a fresh key at aistudio.google.com/apikey.");
-    if (r.status===404) throw new Error(`Model "${model}" wasn't found. Pick another in Settings.`);
+    if (r.status===404){ const e = new Error(`Model "${model}" isn't available to your key. Pick another in Settings.`); e.notFound = true; throw e; }
     throw new Error(`Gemini error ${r.status}: ${msg}`);
   }
   const cand = data?.candidates?.[0];
@@ -613,7 +624,7 @@ function alertBox(msg){ const l=$("#list"); l.insertAdjacentHTML("beforebegin", 
 /* ---------------- Settings ---------------- */
 function loadSettings(){
   $("#key").value = settings.key || "";
-  $("#model").value = ["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-3-flash-preview","custom"].includes(settings.model) ? settings.model : "custom";
+  $("#model").value = [...MODELS.slice(0,3),"custom"].includes(settings.model) ? settings.model : "custom";
   if ($("#model").value==="custom") $("#modelCustom").value = settings.custom || settings.model || "";
   $("#modelCustom").classList.toggle("hidden", $("#model").value!=="custom");
   $("#nokey").classList.toggle("hidden", !!settings.key);
