@@ -204,7 +204,7 @@ sp.addEventListener("click",hide);sp.addEventListener("keydown",e=>{if(e.key==="
         <a class="btn sm" id="ebayAll" target="_blank" rel="noopener">All sold copies</a>
         <a class="btn sm" id="ebayGrade" target="_blank" rel="noopener">Sold near this grade</a>
       </div>
-      <p class="small" id="ebayNote">Opens eBay's sold listings for raw copies (slabbed CGC/CBCS/PGX copies are left out).</p>
+      <p class="small" id="ebayNote">Opens eBay's sold listings, including raw and slabbed (CGC/CBCS/PGX) copies.</p>
     </div>
 
     <h3>Notes</h3>
@@ -745,7 +745,6 @@ function ebayUrl(title, issue, grade){
   const base = EBAY[settings.ebay] || EBAY.uk;
   let q = [title, issue].filter(Boolean).join(" ").trim();
   if (grade != null){ const i = idxOf(grade); q += ` (${fmt(SCALE[i])},${ABBR[i].replace(/[+\-]$/,"")})`; }
-  q += " -cgc -cbcs -pgx";
   return `${base}/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sop=13`;
 }
 function updateEbay(grade){
@@ -756,7 +755,7 @@ function updateEbay(grade){
   $("#ebayGrade").href = ok ? ebayUrl(t,n,grade) : "#";
   $("#ebayAll").classList.toggle("off",!ok); $("#ebayGrade").classList.toggle("off",!ok);
   $("#ebayGrade").textContent = `Sold near ${fmt(grade)}`;
-  $("#ebayNote").textContent = ok ? "Opens eBay's sold listings for raw copies (slabbed CGC/CBCS/PGX copies are left out)." : "Add the title (and issue number) above to search eBay.";
+  $("#ebayNote").textContent = ok ? "Opens eBay's sold listings, including raw and slabbed (CGC/CBCS/PGX) copies." : "Add the title (and issue number) above to search eBay.";
 }
 document.querySelectorAll("#ebaySite button").forEach(b=>b.onclick=()=>{ settings.ebay = b.dataset.site; saveSettings(); if (current) updateGrade(); });
 ["title","issue"].forEach(k=>$("#"+k).addEventListener("input",()=>{ if (current) updateGrade(); }));
