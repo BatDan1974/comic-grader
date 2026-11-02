@@ -77,6 +77,13 @@ textarea{min-height:70px;resize:vertical}
 .hidden{display:none!important}
 .small{font-size:13px;color:var(--mute)}
 a{color:var(--link)}
+a.btn{text-decoration:none}
+.ebay .btns{margin:8px 0 0}.ebay .btns .btn{flex:1}
+.ebay a.btn.off{opacity:.45;pointer-events:none}
+.seg{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{background:none;border:0;color:var(--mute);font:inherit;font-size:13px;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer}
+.seg button.on{background:linear-gradient(90deg,var(--acc),var(--accd));color:#fff}
+.ebay-mini{display:block;margin-top:4px;font-size:11px;font-weight:700;color:var(--link);text-decoration:none;white-space:nowrap}
 .lnk{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--card2);border:1px solid var(--line);color:var(--text);text-decoration:none;margin-bottom:8px}
 .lnk:active{border-color:var(--acc)}
 .lnk img,.lnk-ph{width:56px;height:56px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:var(--card)}
@@ -189,6 +196,16 @@ sp.addEventListener("click",hide);sp.addEventListener("keydown",e=>{if(e.key==="
     <h3>Defects <span class="small">(edit anything the AI got wrong; the grade updates live)</span></h3>
     <div id="defects"></div>
     <button class="btn sm" id="addDef">+ Add defect</button>
+
+    <h3>Check sold prices</h3>
+    <div class="ebay">
+      <div class="seg" id="ebaySite"><button type="button" data-site="uk">eBay UK</button><button type="button" data-site="us">eBay US</button></div>
+      <div class="btns">
+        <a class="btn sm" id="ebayAll" target="_blank" rel="noopener">All sold copies</a>
+        <a class="btn sm" id="ebayGrade" target="_blank" rel="noopener">Sold near this grade</a>
+      </div>
+      <p class="small" id="ebayNote">Opens eBay's sold listings for raw copies (slabbed CGC/CBCS/PGX copies are left out).</p>
+    </div>
 
     <h3>Notes</h3>
     <textarea id="notes" placeholder="Anything else worth recording"></textarea>
@@ -579,6 +596,7 @@ function updateGrade(){
   $("#gBlock").textContent = g.blocked;
   $("#gAi").innerHTML = current.ai?.grade ? `AI's own estimate: <strong>${fmt(SCALE[idxOf(current.ai.grade)])}</strong>` : "";
   document.querySelectorAll(".def").forEach((el,i)=>el.querySelector(".captag")?.classList.toggle("hidden", i!==g.worstIndex));
+  updateEbay(g.grade);
   return g;
 }
 function renderDefects(){
@@ -653,9 +671,10 @@ function renderList(){
       <div><div class="t">${esc(c.title)}${c.issue?" #"+esc(c.issue):""}</div>
       <div class="s">${esc([c.publisher,c.year].filter(Boolean).join(" · "))}</div>
       <div class="s">${new Date(c.date).toLocaleDateString()}</div></div>
-      <div class="g">${fmt(c.grade)}<small>${esc(c.abbr)}</small></div>
+      <div class="g">${fmt(c.grade)}<small>${esc(c.abbr)}</small>
+        ${c.title&&c.title!=="Untitled"?`<a class="ebay-mini" href="${esc(ebayUrl(c.title,c.issue,null))}" target="_blank" rel="noopener">eBay sold ›</a>`:""}</div>
     </div>`).join("") : `<p class="small">${collection.length?"No matches.":"Nothing saved yet. Grade a book and tap Save."}</p>`;
-  document.querySelectorAll(".item").forEach(el=>el.onclick=()=>openItem(el.dataset.id));
+  document.querySelectorAll(".item").forEach(el=>el.onclick=e=>{ if (e.target.closest(".ebay-mini")) return; openItem(el.dataset.id); });
 }
 $("#search").oninput = renderList;
 function openItem(id){
@@ -719,6 +738,28 @@ $("#testKey").onclick = async ()=>{
 $("#model").onchange = ()=>{ settings.model = $("#model").value; $("#modelCustom").classList.toggle("hidden", settings.model!=="custom"); saveSettings(); };
 $("#modelCustom").oninput = ()=>{ settings.custom = $("#modelCustom").value; saveSettings(); };
 $("#scaleTable").innerHTML = SCALE.map((g,i)=>`<tr><td><b>${fmt(g)}</b></td><td>${ABBR[i]}</td><td>${NAME[i]}</td></tr>`).join("");
+
+/* ---------------- eBay sold search ---------------- */
+const EBAY = {uk:"https://www.ebay.co.uk", us:"https://www.ebay.com"};
+function ebayUrl(title, issue, grade){
+  const base = EBAY[settings.ebay] || EBAY.uk;
+  let q = [title, issue].filter(Boolean).join(" ").trim();
+  if (grade != null){ const i = idxOf(grade); q += ` (${fmt(SCALE[i])},${ABBR[i].replace(/[+\-]$/,"")})`; }
+  q += " -cgc -cbcs -pgx";
+  return `${base}/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sop=13`;
+}
+function updateEbay(grade){
+  document.querySelectorAll("#ebaySite button").forEach(b=>b.classList.toggle("on", b.dataset.site===(settings.ebay||"uk")));
+  const t = $("#title").value.trim(), n = $("#issue").value.trim();
+  const ok = !!t;
+  $("#ebayAll").href = ok ? ebayUrl(t,n,null) : "#";
+  $("#ebayGrade").href = ok ? ebayUrl(t,n,grade) : "#";
+  $("#ebayAll").classList.toggle("off",!ok); $("#ebayGrade").classList.toggle("off",!ok);
+  $("#ebayGrade").textContent = `Sold near ${fmt(grade)}`;
+  $("#ebayNote").textContent = ok ? "Opens eBay's sold listings for raw copies (slabbed CGC/CBCS/PGX copies are left out)." : "Add the title (and issue number) above to search eBay.";
+}
+document.querySelectorAll("#ebaySite button").forEach(b=>b.onclick=()=>{ settings.ebay = b.dataset.site; saveSettings(); if (current) updateGrade(); });
+["title","issue"].forEach(k=>$("#"+k).addEventListener("input",()=>{ if (current) updateGrade(); }));
 
 /* ---------------- Links ---------------- */
 const LINKS = [
