@@ -672,7 +672,7 @@ function renderList(){
       <div class="s">${esc([c.publisher,c.year].filter(Boolean).join(" · "))}</div>
       <div class="s">${new Date(c.date).toLocaleDateString()}</div></div>
       <div class="g">${fmt(c.grade)}<small>${esc(c.abbr)}</small>
-        ${c.title&&c.title!=="Untitled"?`<a class="ebay-mini" href="${esc(ebayUrl(c.title,c.issue,null))}" target="_blank" rel="noopener">eBay sold ›</a>`:""}</div>
+        ${c.title&&c.title!=="Untitled"?`<a class="ebay-mini" href="${esc(ebayUrl(c.title,c.issue,c.year,null))}" target="_blank" rel="noopener">eBay sold ›</a>`:""}</div>
     </div>`).join("") : `<p class="small">${collection.length?"No matches.":"Nothing saved yet. Grade a book and tap Save."}</p>`;
   document.querySelectorAll(".item").forEach(el=>el.onclick=e=>{ if (e.target.closest(".ebay-mini")) return; openItem(el.dataset.id); });
 }
@@ -741,24 +741,26 @@ $("#scaleTable").innerHTML = SCALE.map((g,i)=>`<tr><td><b>${fmt(g)}</b></td><td>
 
 /* ---------------- eBay sold search ---------------- */
 const EBAY = {uk:"https://www.ebay.co.uk", us:"https://www.ebay.com"};
-function ebayUrl(title, issue, grade){
+function ebayUrl(title, issue, year, grade){
   const base = EBAY[settings.ebay] || EBAY.uk;
-  let q = [title, issue].filter(Boolean).join(" ").trim();
+  let q = title.trim();
+  if (issue) q += ` #${String(issue).replace(/^#/,"").trim()}`;
+  if (year) q += ` (${String(year).trim()})`;
   if (grade != null){ const i = idxOf(grade); q += ` (${fmt(SCALE[i])},${ABBR[i].replace(/[+\-]$/,"")})`; }
   return `${base}/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1&_sop=13`;
 }
 function updateEbay(grade){
   document.querySelectorAll("#ebaySite button").forEach(b=>b.classList.toggle("on", b.dataset.site===(settings.ebay||"uk")));
-  const t = $("#title").value.trim(), n = $("#issue").value.trim();
+  const t = $("#title").value.trim(), n = $("#issue").value.trim(), y = $("#year").value.trim();
   const ok = !!t;
-  $("#ebayAll").href = ok ? ebayUrl(t,n,null) : "#";
-  $("#ebayGrade").href = ok ? ebayUrl(t,n,grade) : "#";
+  $("#ebayAll").href = ok ? ebayUrl(t,n,y,null) : "#";
+  $("#ebayGrade").href = ok ? ebayUrl(t,n,y,grade) : "#";
   $("#ebayAll").classList.toggle("off",!ok); $("#ebayGrade").classList.toggle("off",!ok);
   $("#ebayGrade").textContent = `Sold near ${fmt(grade)}`;
   $("#ebayNote").textContent = ok ? "Opens eBay's sold listings, including raw and slabbed (CGC/CBCS/PGX) copies." : "Add the title (and issue number) above to search eBay.";
 }
 document.querySelectorAll("#ebaySite button").forEach(b=>b.onclick=()=>{ settings.ebay = b.dataset.site; saveSettings(); if (current) updateGrade(); });
-["title","issue"].forEach(k=>$("#"+k).addEventListener("input",()=>{ if (current) updateGrade(); }));
+["title","issue","year"].forEach(k=>$("#"+k).addEventListener("input",()=>{ if (current) updateGrade(); }));
 
 /* ---------------- Links ---------------- */
 const LINKS = [
